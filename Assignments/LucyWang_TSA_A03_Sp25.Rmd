@@ -7,9 +7,6 @@ geometry: margin=2.54cm
 editor_options: 
   chunk_output_type: console
 ---
-```{r}
-
-```
   
 ## Directions
   
@@ -33,7 +30,7 @@ Consider the same data you used for A2 from the spreadsheet "Table_10.1_Renewabl
 
 R packages needed for this assignment:"forecast","tseries", and "Kendall". Install these packages, if you haven't done yet. Do not forget to load them before running your script, since they are NOT default packages.\\
 
-```{r, message=FALSE}
+```{r, message=FALSE, warning=FALSE}
 #Load/install required package here
 library(lubridate)
 library(ggplot2)
@@ -46,7 +43,7 @@ library(cowplot)
 library(glue)
 ```
 
-```{r}
+```{r, message=FALSE}
 # Load data file 
 data_file <- read_excel(path="./Data/Table_10.1_Renewable_Energy_Production_and_Consumption_by_Source.xlsx",
                            skip = 12, 
@@ -69,6 +66,8 @@ cleaned_df <- as.data.frame(cleaned_df)
 
 #Create time series 
 ts_data <- ts(cleaned_df[,2:3],start=c(1973,1),frequency=12)
+
+nobs <- nrow(cleaned_df)
 ```
 
 ##Trend Component
@@ -77,7 +76,7 @@ ts_data <- ts(cleaned_df[,2:3],start=c(1973,1),frequency=12)
 For each time series, i.e., Renewable Energy Production and Hydroelectric Consumption create three plots: one with time series, one with the ACF and with the PACF. You may use the some code from A2, but I want all the three plots side by side as in a grid.
 (Hint: use function `plot_grid()` from the `cowplot` package)
 
-```{r Q1 Renewable Energy Production Plots}
+```{r Q1 Renewable Energy Production Plots, warning=FALSE, fig.height=3, fig.width=8}
 Renewable_ts_plot <- autoplot(ts_data[,1]) +
   xlab("Time") +
   ylab("Total Renewable Energy Production") +
@@ -105,7 +104,7 @@ Renewable_pacf_plot <- autoplot(Renewable_pacf) +
 plot_grid(Renewable_ts_plot, Renewable_acf_plot, Renewable_pacf_plot, ncol = 3, align = 'h')
 ```
 
-```{r Q1 Hydroelectric Consumption Plots}
+```{r Q1 Hydroelectric Consumption Plots, , fig.height=3, fig.width=8}
 Hydro_ts_plot <- autoplot(ts_data[,2]) +
   xlab("Time") +
   ylab("Hydroelectric Power Consumption") +
@@ -150,11 +149,11 @@ t <- c(1:nobs)
 
 #Fit a linear trend to TS of renewable
 Renewable_linear_trend <- lm(cleaned_df[,2] ~ t) 
-summary(Renewable_linear_trend)
+print(summary(Renewable_linear_trend))
 
 #Fit a linear trend to TS of hydroelectric
 Hydro_linear_trend <- lm(cleaned_df[,3] ~ t) 
-summary(Hydro_linear_trend)
+print(summary(Hydro_linear_trend))
 ```
 
 **Renewable:**
@@ -166,7 +165,7 @@ The low p-value (less than 0.05) shows that the linear model is statistically si
 ```{r Q3 hydro lm}
 #Fit a linear trend to TS of hydroelectric
 Hydro_linear_trend <- lm(cleaned_df[,3] ~ t) 
-summary(Hydro_linear_trend)
+print(summary(Hydro_linear_trend))
 ```
 
 **Hydroelectric:** 
@@ -202,7 +201,7 @@ plot_detrend <- function(lm_model, i){
 
 ```
 
-```{r Q4 Call renewable }
+```{r Q4 Call renewable}
 Renewable_detrend_ts <- plot_detrend(Renewable_linear_trend,1)$plot
 Renewable_detrend_ts
 ```
@@ -211,7 +210,7 @@ The detrended series is presented by the green lines, while the original times s
 **Renewable:**
 The strong upward trend is now eliminated, leaving fluctuations around 0 and showing stationarity. With detrending, we are able to observe the seasonality. 
 
-```{r Q4 Call hydro }
+```{r Q4 Call hydro}
 Hydro_detrend_ts <-plot_detrend(Hydro_linear_trend,2)$plot
 Hydro_detrend_ts
 ```
@@ -239,9 +238,9 @@ plot_acf_pacf <- function(lm_model, i){
 }
 ```
 
-```{r Q5 Renewable plots}
-Renewable_detrend_acf <- plot_acf_pacf(Renewable_linear_trend, 1)[[1]]  # Ensure it's a ggplot
-Renewable_detrend_pacf <- plot_acf_pacf(Renewable_linear_trend, 1)[[2]]  # Ensure it's a ggplot
+```{r Q5 Renewable plots, fig.height=3, fig.width=8}
+Renewable_detrend_acf <- plot_acf_pacf(Renewable_linear_trend, 1)[[1]] 
+Renewable_detrend_pacf <- plot_acf_pacf(Renewable_linear_trend, 1)[[2]]  
 
 # Arrange the plots side by side using plot_grid()
 plot_grid(Renewable_detrend_ts, Renewable_detrend_acf, Renewable_detrend_pacf, ncol = 3, align = 'h')
@@ -249,7 +248,7 @@ plot_grid(Renewable_detrend_ts, Renewable_detrend_acf, Renewable_detrend_pacf, n
 **Renewable:**
 After detrending, the ACF still shows autocorrelation patterns indicating the strong linear trend. For the detrended PACF plot, the significant lags have reduced, meaning less dependence on past values. 
 
-```{r Q5 Hydro plots}
+```{r Q5 Hydro plots, fig.height=3, fig.width=8}
 Hydro_detrend_acf <- plot_acf_pacf(Hydro_linear_trend,2)[[1]]
 Hydro_detrend_pacf <- plot_acf_pacf(Hydro_linear_trend,2)[[2]]
 
@@ -266,13 +265,125 @@ Set aside the detrended series and consider the original series again from Q1 to
 ### Q6
 Just by looking at the time series and the acf plots, do the series seem to have a seasonal trend? No need to run any code to answer your question. Just type in you answer below.
 
+Yes, the series seem to have seasonal trends. The time series plots show short-term periodic fluctuations. 
+
 ### Q7
 Use function *lm()* to fit a seasonal means model (i.e. using the seasonal dummies) the two time series. Ask R to print the summary of the regression. Interpret the regression output. From the results which series have a seasonal trend? Do the results match you answer to Q6?
+
+```{r Q7 seasonal means - Renewable}
+#Use seasonal means model
+seas_model <- function(i){
+  dummies <- seasonaldummy(ts_data[,i])
+  seas_means_model <- lm(ts_data[,i] ~ dummies)
+  return(seas_means_model)
+}
+
+R_seas_means_model <- seas_model(1)
+summary(R_seas_means_model)
+```
+
+**Renewable:**
+The intercept is at 410.598, meaning that the average renewable energy production in December is 410.598 trillion Btu.
+The seasonal dummy coefficients across the month shows random variation from December and therefore does not indicate a seasonal pattern. 
+The low adjusted R-squared of -0.0092 suggests that less than 1% of the variability in renewable energy production can be explained by seasonality.  
+The p-values are greater than 0.05, showing NO evidence that the model is statistically significant. 
+
+```{r Q7 seasonal means - Hydro}
+H_seas_means_model <- seas_model(2)
+summary(H_seas_means_model)
+```
+
+**Hydroelectric:**
+The intercept is at 79.981, meaning that the average hydroelectric power consumption in December is 79.981 trillion Btu.
+The seasonal dummy coefficients across the month shows stepped variations from December. 
+The adjusted R-squared suggests that 46% of the variability in hydroelectric consumption can be explained by seasonality.  
+The p-values for all months except for February are less than 0.05, showing the significant seasonal effect associated with most months (with February as the exception). 
+
+Therefore, hydroelectric power consumption shows a seasonal trend while renewable energy production does not. The renewable series does not match with my answer in Q6. 
 
 ### Q8
 Use the regression coefficients from Q7 to deseason the series. Plot the deseason series and compare with the plots from part Q1. Did anything change?
 
+```{r Q8 deseason function}
+deseason_series <- function(seas_means_model,i){
+  beta_intercept <-seas_means_model$coefficients[1]
+  beta_coeff <-seas_means_model$coefficients[2:12]
+  
+  dummies <- seasonaldummy(ts_data[,i])
+  
+  inflow_seas_comp <- array(0,nobs)
+  for(n in 1:nobs){
+    inflow_seas_comp[n] <- beta_intercept + beta_coeff %*% dummies[n,]
+  }
+  
+  deseason_data <- ts_data[,i] - inflow_seas_comp
+  
+  ts_deseason_data <- ts(deseason_data,start=c(1973,1),
+                                frequency = 12)
+  
+  deseason_plot <-autoplot(ts_data[,i])+
+    autolayer(ts_deseason_data,color="red") +
+    ggtitle(colnames(ts_data)[i])
+  
+  return(list(deseason_ts = ts_deseason_data, plot = deseason_plot))
+}
+```
+
+```{r Q8 deseason - Renewable}
+R_deseason_ts <- deseason_series(R_seas_means_model,1)$deseason_ts
+R_deseason_plot <- deseason_series(R_seas_means_model,1)$plot
+R_deseason_plot
+```
+
+**Renewable:**
+The deseason series has smoothed the periodic fluctuations slightly, making the long--term upward trend more observable. 
+
+```{r Q8 deseason - Hydro}
+H_deseason_ts <- deseason_series(H_seas_means_model,2)$deseason_ts
+H_deseason_plot <- deseason_series(H_seas_means_model,2)$plot
+H_deseason_plot
+```
+
+**Hydroelectric:**
+The deseason series has smoothed the seasonal fluctuations (short-term, periodic variations). The series becomes more irregular with few observable trend.  
+
 ### Q9
 Plot ACF and PACF for the deseason series and compare with the plots from Q1. You may use plot_grid() again to get them side by side, but not mandatory. Did the plots change? How?
 
+```{r Q9 deseason ACF/PACF function}
+deseason_acf_pacf <- function(seas_means_model, i){
+  deseason_ts <- deseason_series(seas_means_model,i)$deseason_ts 
+  deseason_acf <- Acf(deseason_ts, 
+                               lag.max=40, type="correlation", 
+                               plot=FALSE)
+  acf_plot <- autoplot(deseason_acf) + 
+    ggtitle(("ACF (Deseason)")) +
+    theme_minimal()
+  deseason_pacf <- Pacf(deseason_ts, 
+                       lag.max=40, plot=FALSE)
+  pacf_plot <- autoplot(deseason_pacf) + 
+    ggtitle(glue("PACF (Deseason)")) +
+    theme_minimal()
+  return(list(acf_plot, pacf_plot)) 
+}
+```
 
+```{r Q9 Renewable plots, fig.height=3, fig.width=8}
+Renewable_deseason_acf <- deseason_acf_pacf(R_seas_means_model, 1)[[1]] 
+Renewable_deseason_pacf <- deseason_acf_pacf(R_seas_means_model, 1)[[2]]  
+
+# Arrange the plots side by side using plot_grid()
+plot_grid(R_deseason_plot, Renewable_deseason_acf, Renewable_deseason_pacf, ncol = 3, align = 'h')
+```
+**Renewable:**
+The autocorrelation of the deseason ACF reduced slightly comparing to the original ACF. The remaining correlation indicates potential non-seasonal considerations. The deseason PACF generally shows smaller spikes while lag 1 remains strong, suggesting the existence of short-term autocorrelation. 
+
+```{r Q9 Hydro plots, fig.height=3, fig.width=8}
+Hydro_deseason_acf <- deseason_acf_pacf(H_seas_means_model,2)[[1]]
+Hydro_deseason_pacf <- deseason_acf_pacf(H_seas_means_model,2)[[2]]
+
+# Arrange the plots side by side using plot_grid()
+plot_grid(H_deseason_plot, Hydro_deseason_acf, Hydro_deseason_pacf, ncol = 3, align = 'h')
+```
+**Hydroelectric:** 
+The autocorrelation of the deseason ACF decays more quickly than the original ACF. The deseason PACF shows smaller spikes, indicating less seasonal dependence. 
