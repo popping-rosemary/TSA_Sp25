@@ -142,8 +142,11 @@ plot_pacf(arma_1_0, arma_0_1, arma_1_1)
 (d) Look at the ACFs and PACFs. Imagine you had these plots for a data set and you were asked to identify the model, i.e., is it AR, MA or ARMA and the order of each component. Would you be able identify them correctly? Explain your answer.
 
 > Answer: 
+
 > AR(1) model: The PACF cuts off after lag 1, which indicates possibility of an AR model of order 1. However, there is seemingly a cutoff after lag 2 in the ACF plot without an obvious observation of a gradual decay. Therfore, it is a bit hard to tell if it is an AR model of order 1. 
+
 > MA(1) model: The ACF plot shows a crisp cutoff after lag 1. The PACF shows a decay, though the decay is not as gradual as expected.  We can basically confirm this is an MA model of order 1. 
+
 > ARMA model: The ACF and PACF plots shows a mix of bahaviors that could be in ACF or PACF plots. Both ACF and PACF plots show a gradual decay, which indicates that the model may be influenced by both AR and MA components. Therefore, this is an ARMA model. 
 
 (e) Compare the PACF values R computed with the values you provided for the lag 1 correlation coefficient, i.e., does $\phi=0.6$ match what you see on PACF for ARMA(1,0), and ARMA(1,1)? Should they match?
@@ -161,8 +164,11 @@ plot_acf(arma_1_0_f, arma_0_1_f, arma_1_1_f)
 plot_pacf(arma_1_0_f, arma_0_1_f, arma_1_1_f)
 ```
 > Answer: The plots show much clearer patterns to identify the AR/MA/ARMA models with 1000 observations. The decays are more gradual, and the cutoffs are more sharp after n=1000. 
+
 > AR(1) model: The ACF shows a gradual decay rather than a confusing cutoff after lag 3. The PACF cuts off sharply after lag 1. So we could easily conclude that this is an AR model.  
+
 > MA(1) model: The ACF plot shows a crisp cutoff after lag 1, while the PACF shows a decay. We can confirm this is an MA model.  
+
 > ARMA model: Similarly to previous observation, the ACF and PACF plots shows a mix of bahaviors that could be in ACF or PACF plots. Both ACF and PACF plots show a gradual decay, which indicates that the model may be influenced by both AR and MA components. This is an ARMA model. 
 
 > Answer: Similar to my previous answer in (e), $\phi=0.6$ matches with what's shown on the PACF plot for ARMA(1,0) but not necessarily for ARMA (1,1). For the ARMA (1,0) model, the spike on the PACF plot at lag 1 is close to 0.6 as they should. The PACF value becomes closer to 0.8 for the ARMA (1,1) model as the PACF for ARMA(1,1) should not match exactly with $\phi=0.6$. Since it is affected by both AR and MA components, the correlation at lag 1 is influenced by both $\phi$ and $\theta$. Therefore, the actual value falls in between (0.6 and 0.9).  
@@ -173,7 +179,7 @@ Consider the ARIMA model $y_t=0.7*y_{t-1}-0.25*y_{t-12}+a_t-0.1*a_{t-1}$
 
 (a) Identify the model using the notation ARIMA$(p,d,q)(P,D,Q)_ s$, i.e., identify the integers $p,d,q,P,D,Q,s$ (if possible) from the equation.
 
-> ARIMA$(1,0,1)(1,0,0)_ 12$
+> ARIMA$(1,0,1)(1,0,0)_12$
 
 (b) Also from the equation what are the values of the parameters, i.e., model coefficients.
 
@@ -184,12 +190,12 @@ Consider the ARIMA model $y_t=0.7*y_{t-1}-0.25*y_{t-12}+a_t-0.1*a_{t-1}$
 Simulate a seasonal ARIMA$(0, 1)\times(1, 0)_{12}$ model with $\phi =0 .8$ and $\theta = 0.5$ using the `sim_sarima()` function from package `sarima`. The $12$ after the bracket tells you that $s=12$, i.e., the seasonal lag is 12, suggesting monthly data whose behavior is repeated every 12 months. You can generate as many observations as you like. Note the Integrated part was omitted. It means the series do not need differencing, therefore $d=D=0$. Plot the generated series using `autoplot()`. Does it look seasonal?
 
 ```{r}
-# Simulate SARIMA(0,0,1)(1,0,0)[12] model
-set.seed(123)  # For reproducibility
-simulated_data <- sim_sarima(n = 200, ar = 0.8, ma = 0.5, sar = 0.8, sma = 0, s = 12)
+# Simulate model
+set.seed(101)  # For reproducibility
+simulated_data <- sim_sarima(n = 200, model=list(ar = 0.8, ma = 0.5, sar = 0.8, sma = 0, nseasons = 12))
 
 # Convert to time series object
-ts_data <- ts(simulated_data, frequency = 12, start = c(2000, 1))
+ts_data <- ts(simulated_data, frequency = 12, start = c(2008, 1))
 
 # Plot the time series
 autoplot(ts_data) +
@@ -199,10 +205,25 @@ autoplot(ts_data) +
   theme_minimal()
 ```
 
+> Answer: The plot does show periodic fluctuations, which might indicate seasonality. Though there is a differenced series (D=1), the seasonal pattern still exists. 
+
 ## Q5
 
 Plot ACF and PACF of the simulated series in Q4. Comment if the plots are well representing the model you simulated, i.e., would you be able to identify the order of both non-seasonal and seasonal components from the plots? Explain.
 
 ```{r}
 
+# Plot ACF
+acf_plot_Q5 <- ggAcf(ts_data, lag.max = 40) +
+  ggtitle("ACF of Simulated SARIMA(0,0,1)(1,0,0)[12]") +
+  theme_minimal()
+
+# Plot PACF
+pacf_plot_Q5 <- ggPacf(ts_data, lag.max = 40) +
+  ggtitle("PACF of Simulated SARIMA(0,0,1)(1,0,0)[12]") +
+  theme_minimal()
+
+plot_grid(acf_plot_Q5, pacf_plot_Q5, ncol = 2)
 ```
+
+> Answer: Yes, the plots present the models well. Both non-seasonal and seasonal components cna be identified. The ACF spikes every 12 lags, suggesting strong seasonality. The non-seasonal correlation in the ACF plot also decays gradually. The PACF cuts off after lag 1, indicating the non-seasonal MA of order 1 component. The strong spike at 12 also reflects the seasonal autoregressive component, consistent with the seasonal AR(1) at lag 12. 
