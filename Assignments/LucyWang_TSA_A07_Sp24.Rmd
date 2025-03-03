@@ -1,7 +1,7 @@
 ---
 title: "ENV 797 - Time Series Analysis for Energy and Environment Applications | Spring 2025"
 subtitle: "Assignment 7 - Due date 03/06/25"
-author: "Student Name"
+author: "Lucy Wang"
 output: pdf_document
 geometry: margin=2.54cm
 ---
@@ -22,7 +22,14 @@ Packages needed for this assignment: "forecast","tseries". Do not forget to load
 
 ```{r}
 #Load/install required package here
-
+library(lubridate)
+library(ggplot2)
+library(forecast)  
+library(Kendall)
+library(tseries)
+library(outliers)
+library(tidyverse)
+library(cowplot)
 ```
 
 ## Importing and processing the data set
