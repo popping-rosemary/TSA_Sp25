@@ -6,6 +6,10 @@ output: pdf_document
 geometry: margin=2.54cm
 ---
 
+```{r setup, include=FALSE} 
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE, tidy.opts=list(width.cutoff=80), tidy=FALSE) 
+```
+
 ## Directions
 
 You should open the .rmd file corresponding to this assignment on RStudio. The file is available on our class repository on Github. And to do so you will need to fork our repository and link it to your RStudio.  
@@ -42,7 +46,31 @@ Consider the data from the file "Net_generation_United_States_all_sectors_monthl
 Import the csv file and create a time series object for natural gas. Make you sure you specify the **start=** and **frequency=** arguments. Plot the time series over time, ACF and PACF.
 
 ```{r}
+# Read csv file
+gen_data <- read.csv(file="./Data/Net_generation_United_States_all_sectors_monthly.csv", header=TRUE,skip=4) %>% 
+  mutate(Month = dmy(paste0("01 ", Month))) %>% 
+  arrange(Month)
 
+# Create a time series for natural gas column
+NG_ts <- ts(gen_data$natural.gas.thousand.megawatthours,start = c(2001,1), frequency = 12)
+
+# Plot the time series over time, ACF and PACF
+ts_plot <- autoplot(NG_ts) +
+  xlab("Time") +
+  ylab("Net Generation (000s MWh)") +
+  ggtitle("Original TS") +
+  theme_minimal()
+
+acf_plot <- autoplot(Acf(NG_ts, lag = 30, plot=FALSE)) +
+    ggtitle("ACF") +
+    theme_minimal()
+
+pacf_plot <- autoplot(Pacf(NG_ts, lag = 30, plot=FALSE)) +
+    ggtitle("PACF") +
+    theme_minimal()
+
+# Arrange the plots side by side using plot_grid()
+plot_grid(ts_plot, acf_plot, pacf_plot, ncol = 3, align = 'h')
 ```
 
 ### Q2
@@ -50,8 +78,49 @@ Import the csv file and create a time series object for natural gas. Make you su
 Using the $decompose()$ and the $seasadj()$ functions create a series without the seasonal component, i.e., a deseasonalized natural gas series. Plot the deseasonalized series over time and corresponding ACF and PACF. Compare with the plots obtained in Q1.
 
 ```{r}
+# Decompose time series
+decompose_ts <- decompose(NG_ts,"additive")
 
+# Non-seasonal time series
+deseasonal_ts <- seasadj(decompose_ts)
+
+#Plotting original and deseasoned series
+autoplot(NG_ts, series="Original") +
+  autolayer(deseasonal_ts, series="Deseasoned") +
+  xlab("Year") + ylab("Net Generation (000s MWh)") +
+  ggtitle("Original and Deseasoned NG Net Generation")+
+  theme_minimal()
 ```
+> Original plots
+> The deseasoned series is smoothed, and the periodic spikes are less observable. The long-term upward trend becomes more clear. 
+
+```{r}
+#Comparing ACFs
+plot_grid(
+  autoplot(Acf(NG_ts, lag = 30, plot=FALSE), 
+                main = "Orginal ACF")+
+                theme_minimal(),
+  autoplot(Acf(deseasonal_ts, lag = 30, plot=FALSE),  
+                  main = "Deseason ACF")+
+                theme_minimal())
+```
+
+> ACF plots
+> The original ACF shows periodic spikes and decays, showing a strong seasonal component. The deseasoned ACF shows a slow decay with no periodic spikes. The seasonality is lessened. 
+
+```{r}
+#Comparing PACFs
+plot_grid(
+  autoplot(Pacf(NG_ts, lag = 30, plot=FALSE), 
+                main = "Orginal ACF")+
+                theme_minimal(),
+  autoplot(Pacf(deseasonal_ts, lag = 30, plot=FALSE),  
+                  main = "Deseason PACF")+
+                theme_minimal())
+```
+
+> PACF plots
+> The original PACF shows some significant lags at regular intervals, suggesting a strong seasonal pattern. The deseason PACF shows less significant lags. indicating that the seasonality is greatly reduced. 
 
 ## Modeling the seasonally adjusted or deseasonalized series
 
@@ -60,8 +129,19 @@ Using the $decompose()$ and the $seasadj()$ functions create a series without th
 Run the ADF test and Mann Kendall test on the deseasonalized data from Q2. Report and explain the results.
 
 ```{r}
+#Run ADF test
+adf_result <- adf.test(deseasonal_ts)
 
+# Run Mann-Kendall test
+mk_result <- MannKendall(deseasonal_ts)
+
+# Print results
+print(adf_result)
+print(mk_result)
 ```
+> ADF test: The p-value is 0.01, less than 0.05. We can reject the null hypothesis and conclude that the series has a unit root. Therefore, the deseasoned series is stationary. 
+
+> Mann Kendall test: The p-value is 2.22e-16, less than 0.05. We can reject the null hypothesis and conclude that there still has an upward trend and may need further detrending. 
 
 ### Q4
 
