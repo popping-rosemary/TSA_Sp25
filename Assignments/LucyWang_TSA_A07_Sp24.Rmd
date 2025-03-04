@@ -112,7 +112,7 @@ plot_grid(
 #Comparing PACFs
 plot_grid(
   autoplot(Pacf(NG_ts, lag = 30, plot=FALSE), 
-                main = "Orginal ACF")+
+                main = "Orginal PACF")+
                 theme_minimal(),
   autoplot(Pacf(deseasonal_ts, lag = 30, plot=FALSE),  
                   main = "Deseason PACF")+
@@ -147,21 +147,32 @@ print(mk_result)
 
 Using the plots from Q2 and test results from Q3 identify the ARIMA model parameters $p,d$ and $q$. Note that in this case because you removed the seasonal component prior to identifying the model you don't need to worry about seasonal component. Clearly state your criteria and any additional function in R you might use. DO NOT use the $auto.arima()$ function. You will be evaluated on ability to understand the ACF/PACF plots and interpret the test results.
 
-```{r}
+> p = 1. The PACF plot shows a significant spike at lag 1, followed by an immediate drop off, suggesting a pattern of AR(1) process. 
 
-```
+> d = 0. No differencing is needed since the series is proved to be stationary due to the ADF test result where p-value is less than 0.05. 
+
+> q = 1. The ACF plot shows a gradual decay with certain spikes. Therefore, the model can be ARMA(1,1).
+
+> The overall ARIMA model should be ARIMA(1,0,1). 
 
 ### Q5
 
 Use `Arima()` from package "forecast" to fit an ARIMA model to your series considering the order estimated in Q4. You should allow constants in the model, i.e., `include.mean = TRUE` or `include.drift=TRUE`. **Print the coefficients** in your report. Hint: use the `cat()` or `print()` function to print.
 
 ```{r}
-
+arima_model <- Arima(deseasonal_ts, order=c(1,0,1), include.drift=TRUE)
+print(arima_model[1])
 ```
 
 ### Q6
 
 Now plot the residuals of the ARIMA fit from Q5 along with residuals ACF and PACF on the same window. You may use the $checkresiduals()$ function to automatically generate the three plots. Do the residual series look like a white noise series? Why?
+
+```{r}
+# Check residuals
+checkresiduals(arima_model)
+```
+> Yes, the residual series looks like a white noise series. The residual plot seems to fluctuate around zero with no clear pattern. In the ACF plot, most lags are within the confidence bands indicating that there is little autocorrelation despite a few spikes. The Q-Q plot generally shows a trend that follows normal distribution. 
 
 ## Modeling the original series (with seasonality)
 
@@ -170,18 +181,47 @@ Now plot the residuals of the ARIMA fit from Q5 along with residuals ACF and PAC
 Repeat Q3-Q6 for the original series (the complete series that has the seasonal component). Note that when you model the seasonal series, you need to specify the seasonal part of the ARIMA model as well, i.e., $P$, $D$ and $Q$.
 
 ```{r}
+#Run ADF test
+adf_result_og <- adf.test(NG_ts)
 
+# Run Mann-Kendall test
+mk_result_og <- SeasonalMannKendall(NG_ts)
+
+# Print results
+print(adf_result_og)
+print(mk_result_og)
 ```
+> ADF test: The p-value is 0.01, less than 0.05. We can reject the null hypothesis and conclude that the series has a unit root. Therefore, the deseasoned series is stationary. 
+
+> Mann Kendall test: The p-value is 2.22e-16, less than 0.05. We can reject the null hypothesis and conclude that there still has an upward trend and may need further detrending. 
+
+> D = 1. The strong trend in Mann Kendall test suggests that seasonal differencing may still be necessary. 
+
+> s = 12. This shows monthly seasonality. 
+
+> P = 1. The PACF suggests a seasonal autoregressive component at lag 12, meaning P = 1.
+
+> Q = 1. The PACF suggests a seasonal autoregressive component at lag 12, meaning Q = 1.
+
+> p,d,q remains the same as previouly stated due to explained reasons. 
+
+> Overall, the model is ARIMA(1,0,1)(1,1,1)_12
+
+```{r}
+arima_model_og <- Arima(NG_ts, order=c(1,0,1), seasonal = c(1,1,1), include.drift=TRUE)
+print(arima_model_og[1])
+
+# Check residuals
+checkresiduals(arima_model_og)
+```
+> The residual series looks like a white noise series. The residual plot seems to fluctuate around zero with no clear pattern. In the ACF plot, most lags (except for one) are within the confidence bands indicating that there is little autocorrelation -- less than Q6. The Q-Q plot generally showsa clearer trend that follows normal distribution. 
 
 
 ### Q8
 
 Compare the residual series for Q7 and Q6. Can you tell which ARIMA model is better representing the Natural Gas Series? Is that a fair comparison? Explain your response.
 
-```{r}
-
-```
-
+> The ARIMA model in Q7 is better representing the Natural Gas Series. The residual ACF shows lags that are closer to zero, and the Q-Q plot fits the normal distribution better. Q7's residuals appear to have less visible autocorrelation. Therefore, the residuals in Q7 are closer to white noise, and Q7 presents a better model. This is not a fair comparison because this dataset exhibits a clear seasonality, but we are comparing a non-seasonal model with seasonal model. 
 
 ## Checking your model with the auto.arima()
 
@@ -192,15 +232,18 @@ Compare the residual series for Q7 and Q6. Can you tell which ARIMA model is bet
 Use the $auto.arima()$ command on the **deseasonalized series** to let R choose the model parameter for you. What's the order of the best ARIMA model? Does it match what you specified in Q4?
 
 ```{r}
-
+#Auto ARIMA
+arima_autofit <- auto.arima(deseasonal_ts)
+print(arima_autofit)
 ```
-
+> The order of the best ARIMA model is ARIMA(1,1,1). d = 1 in this best model, which is different that what I specified in Q4 where d = 0 with ARIMA(1,0,1). 
 
 ### Q10
 
 Use the $auto.arima()$ command on the **original series** to let R choose the model parameters for you. Does it match what you specified in Q7?
 
 ```{r}
-
+arima_autofit_og <- auto.arima(NG_ts)
+print(arima_autofit_og)
 ```
-
+> The best model chosen is ARIMA(1,0,0)(0,1,1)[12], which does not match with my answer in Q7. 
