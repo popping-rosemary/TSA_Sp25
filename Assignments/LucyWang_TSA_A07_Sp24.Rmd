@@ -91,8 +91,9 @@ autoplot(NG_ts, series="Original") +
   ggtitle("Original and Deseasoned NG Net Generation")+
   theme_minimal()
 ```
-> Original plots
-> The deseasoned series is smoothed, and the periodic spikes are less observable. The long-term upward trend becomes more clear. 
+> Time series plots
+
+> The original time series shows greater periodic flucturations over time. The deseasoned series is smoothed, and the periodic spikes are less observable. The long-term upward trend becomes more clear. 
 
 ```{r}
 #Comparing ACFs
@@ -106,6 +107,7 @@ plot_grid(
 ```
 
 > ACF plots
+
 > The original ACF shows periodic spikes and decays, showing a strong seasonal component. The deseasoned ACF shows a slow decay with no periodic spikes. The seasonality is lessened. 
 
 ```{r}
@@ -120,6 +122,7 @@ plot_grid(
 ```
 
 > PACF plots
+
 > The original PACF shows some significant lags at regular intervals, suggesting a strong seasonal pattern. The deseason PACF shows less significant lags. indicating that the seasonality is greatly reduced. 
 
 ## Modeling the seasonally adjusted or deseasonalized series
@@ -143,24 +146,40 @@ print(mk_result)
 
 > Mann Kendall test: The p-value is 2.22e-16, less than 0.05. We can reject the null hypothesis and conclude that there still has an upward trend and may need further detrending. 
 
+> The two show contradictory results. 
+
 ### Q4
 
 Using the plots from Q2 and test results from Q3 identify the ARIMA model parameters $p,d$ and $q$. Note that in this case because you removed the seasonal component prior to identifying the model you don't need to worry about seasonal component. Clearly state your criteria and any additional function in R you might use. DO NOT use the $auto.arima()$ function. You will be evaluated on ability to understand the ACF/PACF plots and interpret the test results.
 
+```{r}
+model_101 <- Arima(deseasonal_ts, order=c(1,0,1), include.drift=TRUE)
+compare_aic <- data.frame(model_101$aic)
+print(compare_aic)
+
+model_100 <- Arima(deseasonal_ts, order=c(1,0,0), include.drift=TRUE)
+compare_aic <- data.frame(model_100$aic)
+print(compare_aic)
+
+model_111 <- Arima(deseasonal_ts, order=c(1,1,1), include.drift=TRUE)
+compare_aic <- data.frame(model_111$aic)
+print(compare_aic)
+```
+
 > p = 1. The PACF plot shows a significant spike at lag 1, followed by an immediate drop off, suggesting a pattern of AR(1) process. 
 
-> d = 0. No differencing is needed since the series is proved to be stationary due to the ADF test result where p-value is less than 0.05. 
+> d = 1. The previous tests shows cotradictory results which makes d a hard choice. If we only look at the ADF test, no differencing is needed. However, the MK test suggests the non-stationarity of the series. 
 
-> q = 1. The ACF plot shows a gradual decay with certain spikes. Therefore, the model can be ARMA(1,1).
+> q = 1. The ACF plot shows a gradual decay and the PACF cuts off sharply. This does not show a clear MA process. Therefore, I will assume the q value and test with AIC comparisons. 
 
-> The overall ARIMA model should be ARIMA(1,0,1). 
+> I used AIC to further assess the uncertain d and q values. ARMIA(1,1,1) shows the lowest AIC. Therefore, the overall model should be ARIMA(1,1,1). 
 
 ### Q5
 
 Use `Arima()` from package "forecast" to fit an ARIMA model to your series considering the order estimated in Q4. You should allow constants in the model, i.e., `include.mean = TRUE` or `include.drift=TRUE`. **Print the coefficients** in your report. Hint: use the `cat()` or `print()` function to print.
 
 ```{r}
-arima_model <- Arima(deseasonal_ts, order=c(1,0,1), include.drift=TRUE)
+arima_model <- Arima(deseasonal_ts, order=c(1,1,1), include.drift=TRUE)
 print(arima_model[1])
 ```
 
@@ -195,7 +214,7 @@ print(mk_result_og)
 
 > Mann Kendall test: The p-value is 2.22e-16, less than 0.05. We can reject the null hypothesis and conclude that there still has an upward trend and may need further detrending. 
 
-> D = 1. The strong trend in Mann Kendall test suggests that seasonal differencing may still be necessary. 
+> D = 1. Though the ADF and MK tests show contradictory results, the small p-value in Mann Kendall test suggests that seasonal differencing may still be necessary. 
 
 > s = 12. This shows monthly seasonality. 
 
@@ -205,16 +224,16 @@ print(mk_result_og)
 
 > p,d,q remains the same as previouly stated due to explained reasons. 
 
-> Overall, the model is ARIMA(1,0,1)(1,1,1)_12
+> Overall, the model is ARIMA(1,1,1)(1,1,1)[12]
 
 ```{r}
-arima_model_og <- Arima(NG_ts, order=c(1,0,1), seasonal = c(1,1,1), include.drift=TRUE)
+arima_model_og <- Arima(NG_ts, order=c(1,1,1), seasonal = c(1,1,1), include.drift=TRUE)
 print(arima_model_og[1])
 
 # Check residuals
 checkresiduals(arima_model_og)
 ```
-> The residual series looks like a white noise series. The residual plot seems to fluctuate around zero with no clear pattern. In the ACF plot, most lags (except for one) are within the confidence bands indicating that there is little autocorrelation -- less than Q6. The Q-Q plot generally showsa clearer trend that follows normal distribution. 
+> The residual series looks like a white noise series. The residual plot seems to fluctuate around zero with no clear pattern. In the ACF plot, most lags (except for two) are within the confidence bands indicating that there is little autocorrelation -- less than Q6. The Q-Q plot generally showsa clearer trend that follows normal distribution. 
 
 
 ### Q8
@@ -236,7 +255,7 @@ Use the $auto.arima()$ command on the **deseasonalized series** to let R choose 
 arima_autofit <- auto.arima(deseasonal_ts)
 print(arima_autofit)
 ```
-> The order of the best ARIMA model is ARIMA(1,1,1). d = 1 in this best model, which is different that what I specified in Q4 where d = 0 with ARIMA(1,0,1). 
+> The order of the best ARIMA model is ARIMA(1,1,1). This matches with my previous answer. 
 
 ### Q10
 
